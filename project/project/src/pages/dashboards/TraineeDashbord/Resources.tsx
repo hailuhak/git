@@ -34,9 +34,15 @@ export const Resources: React.FC = () => {
       const enrollmentQuery = query(enrollmentRef, where('userId', '==', currentUser.uid));
       const enrollmentSnap = await getDocs(enrollmentQuery);
 
-      const enrolledCourseIds = enrollmentSnap.docs
-        .map((doc) => doc.data().courseId)
-        .filter(Boolean);
+      const enrolledCourseIds: string[] = [];
+      enrollmentSnap.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.courseIds && Array.isArray(data.courseIds)) {
+          enrolledCourseIds.push(...data.courseIds);
+        } else if (data.courseId) {
+          enrolledCourseIds.push(data.courseId);
+        }
+      });
 
       if (enrolledCourseIds.length === 0) {
         setResources([]);
@@ -54,7 +60,7 @@ export const Resources: React.FC = () => {
             id: doc.id,
             name: d.name,
             type: d.type,
-            content: d.content,
+            content: d.content || d.url,
             description: d.description || '',
             courseId: d.courseId,
           } as Resource;

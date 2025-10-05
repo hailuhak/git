@@ -31,9 +31,15 @@ export const Schedule: React.FC = () => {
     const q = query(enrollmentRef, where("userId", "==", currentUser.uid));
 
     const unsubscribeEnrollments = onSnapshot(q, (enrollmentSnap) => {
-      const courseIds = enrollmentSnap.docs
-        .map((doc) => doc.data().courseId)
-        .filter(Boolean);
+      const courseIds: string[] = [];
+      enrollmentSnap.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.courseIds && Array.isArray(data.courseIds)) {
+          courseIds.push(...data.courseIds);
+        } else if (data.courseId) {
+          courseIds.push(data.courseId);
+        }
+      });
 
       if (courseIds.length === 0) {
         setSessions([]);
@@ -42,7 +48,10 @@ export const Schedule: React.FC = () => {
       }
 
       const sessionsRef = collection(db, "trainingSessions");
-      const batches = courseIds.length > 10 ? [courseIds.slice(0, 10)] : [courseIds];
+      const batches: string[][] = [];
+      for (let i = 0; i < courseIds.length; i += 10) {
+        batches.push(courseIds.slice(i, i + 10));
+      }
 
       const unsubscribes = batches.map((batchIds) => {
         const sessionsQuery = query(sessionsRef, where("courseId", "in", batchIds));

@@ -125,11 +125,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         timestamp: serverTimestamp(),
       };
       await setDoc(userRef, newUser);
+
+      await setDoc(doc(db, 'pendingUsers', result.user.uid), {
+        uid: result.user.uid,
+        email: result.user.email || '',
+        displayName: result.user.displayName || '',
+        role: 'trainee',
+        photoURL: result.user.photoURL || '',
+        timestamp: serverTimestamp(),
+      });
+
       setCurrentUser(newUser);
       return;
     }
 
     const userData = userDoc.data() as UserWithTimestamp;
+    await setDoc(userRef, { ...userData, lastLogin: new Date() }, { merge: true });
     setCurrentUser(userData);
   };
 

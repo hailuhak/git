@@ -31,9 +31,15 @@ export const Elearning: React.FC = () => {
         const enrollmentQuery = query(enrollmentRef, where('userId', '==', currentUser.uid));
         const enrollmentSnap = await getDocs(enrollmentQuery);
 
-        const enrolledCourseIds = enrollmentSnap.docs
-          .map(doc => doc.data().courseId)
-          .filter(Boolean);
+        const enrolledCourseIds: string[] = [];
+        enrollmentSnap.docs.forEach(doc => {
+          const data = doc.data();
+          if (data.courseIds && Array.isArray(data.courseIds)) {
+            enrolledCourseIds.push(...data.courseIds);
+          } else if (data.courseId) {
+            enrolledCourseIds.push(data.courseId);
+          }
+        });
 
         if (!enrolledCourseIds.length) {
           setModules([]);
@@ -41,23 +47,33 @@ export const Elearning: React.FC = () => {
           return;
         }
 
+        const coursesRef = collection(db, 'courses');
+        const coursesSnap = await getDocs(coursesRef);
+        const coursesMap = new Map();
+        coursesSnap.docs.forEach(doc => {
+          coursesMap.set(doc.id, doc.data().title || 'Unknown Course');
+        });
+
         const materialsRef = collection(db, 'trainingMaterials');
         const materialsSnap = await getDocs(materialsRef);
 
         const modulesData: ElearningModule[] = materialsSnap.docs
-          .filter(doc => enrolledCourseIds.includes(doc.data().courseId))
+          .filter(doc => {
+            const courseId = doc.data().courseId;
+            return courseId && enrolledCourseIds.includes(courseId);
+          })
           .map(doc => {
             const data = doc.data();
             return {
               id: doc.id,
               courseId: data.courseId,
-              courseName: data.courseName || 'Unknown Course',
+              courseName: coursesMap.get(data.courseId) || 'Unknown Course',
               title: data.name || 'Untitled Module',
               description: data.description || 'No description available',
-              type: data.type?.includes('video') ? 'video' : data.type?.includes('pdf') ? 'document' : 'document',
+              type: data.type?.includes('video') ? 'video' : data.type?.includes('pdf') || data.type?.includes('document') ? 'document' : 'document',
               duration: data.duration || 0,
               completed: data.completed || false,
-              contentUrl: data.content,
+              contentUrl: data.content || data.url,
             };
           });
 

@@ -103,6 +103,16 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onBack }) => {
   };
 
 const handleGoogleSignIn = async () => {
+  if (isLogin) {
+    setError('Google sign-in is only available during signup. Please use email/password to login.');
+    return;
+  }
+
+  if (!canSignup) {
+    setError('Registration is not currently available.');
+    return;
+  }
+
   setLoading(true);
   setError('');
 
@@ -115,36 +125,34 @@ const handleGoogleSignIn = async () => {
     const userSnap = await getDoc(userRef);
 
     if (!userSnap.exists()) {
-      // New user: default role 'pending'
       await setDoc(userRef, {
+        uid: user.uid,
         displayName: user.displayName || '',
         email: user.email,
         role: 'pending',
+        photoURL: user.photoURL || '',
         createdAt: serverTimestamp(),
+        lastLogin: serverTimestamp(),
       });
+
+      await setDoc(doc(db, 'pendingUsers', user.uid), {
+        uid: user.uid,
+        displayName: user.displayName || '',
+        email: user.email,
+        role: 'trainee',
+        photoURL: user.photoURL || '',
+        timestamp: serverTimestamp(),
+      });
+
       setError('Your account is pending approval. Please wait for admin approval.');
       return;
     }
 
-    // Existing user
     const userData = userSnap.data();
     if (userData.role === 'pending') {
-      // Listen for role change in real-time
-      const unsubscribe = onSnapshot(userRef, (docSnap) => {
-        if (!docSnap.exists()) return;
-        const data = docSnap.data();
-        if (data.role !== 'pending') {
-          unsubscribe(); // stop listening
-          // Redirect to dashboard now that approved
-          // e.g., navigate('/dashboard');
-        }
-      });
-
       setError('Your account is still pending approval. Waiting for admin.');
       return;
     }
-
-   
 
   } catch (err: any) {
     setError(err.message);

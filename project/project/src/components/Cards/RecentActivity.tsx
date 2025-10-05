@@ -14,11 +14,26 @@ export interface ActivityLog {
   timestamp: Date;
 }
 
-export const RecentActivity: React.FC = () => {
+interface RecentActivityProps {
+  logs?: ActivityLog[];
+  loading?: boolean;
+}
+
+export const RecentActivity: React.FC<RecentActivityProps> = ({ logs: propLogs, loading: propLoading }) => {
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (propLogs !== undefined) {
+      const formattedLogs = propLogs.map((log) => ({
+        ...log,
+        timestamp: log.timestamp instanceof Date ? log.timestamp : new Date(log.timestamp),
+      }));
+      setActivities(formattedLogs.slice(0, 5));
+      setLoading(propLoading ?? false);
+      return;
+    }
+
     const q = query(
       collection(db, 'activityLogs'),
       orderBy('timestamp', 'desc'),
@@ -48,7 +63,7 @@ export const RecentActivity: React.FC = () => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [propLogs, propLoading]);
 
   const formatTime = (date: Date) => {
     const now = new Date();
