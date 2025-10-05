@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BookOpen, PlayCircle, FileText, CheckCircle, Clock } from 'lucide-react';
+import { BookOpen, CirclePlay as PlayCircle, FileText, CircleCheck as CheckCircle, Clock } from 'lucide-react';
 import { db } from '../../../lib/firebase';
 import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { useAuth } from '../../../contexts/AuthContext';
